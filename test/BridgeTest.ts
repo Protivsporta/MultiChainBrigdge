@@ -3,9 +3,9 @@ import { ethers, network } from "hardhat";
 import { Contract, utils, BigNumber } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
-describe("BridgeBSC", function () {
+describe("Bridge", function () {
 
-  let bscToken: Contract;
+  let token: Contract;
   let bridgeContract: Contract;
 
   let owner: SignerWithAddress;
@@ -20,15 +20,15 @@ describe("BridgeBSC", function () {
   before(async () => {
     [owner, backendSigner, addr1, addr2, addr3] = await ethers.getSigners();
 
-    const Token = await ethers.getContractFactory("BSCToken", owner);
-    bscToken = await Token.deploy(
+    const Token = await ethers.getContractFactory("TokenERC20", owner);
+    token = await Token.deploy(
       "BSCToken",
       "BSCT",
       initialTokenBalance
     );
-    const BridgeContract = await ethers.getContractFactory("BridgeBSC", owner);
+    const BridgeContract = await ethers.getContractFactory("Bridge", owner);
     bridgeContract = await BridgeContract.deploy(
-      bscToken.address,
+      token.address,
       backendSigner.address
     );
 
@@ -81,16 +81,16 @@ describe("BridgeBSC", function () {
     const amount = utils.parseUnits("10", 18);
     const msg = genMessage(owner.address, amount);
     const signature = await signMessage(owner, msg);
-    const balanceOfSender = await bscToken.balanceOf(owner.address);
-    const totalSupply = await bscToken.totalSupply();
+    const balanceOfSender = await token.balanceOf(owner.address);
+    const totalSupply = await token.totalSupply();
 
     const tx = bridgeContract.swap(owner.address, amount, signature);
     await expect(tx)
       .to.emit(bridgeContract, "SwapInitialized")
       .withArgs(owner.address, owner.address, amount, bigInt("0"), signature);
 
-    const newBalanceOfSender = await bscToken.balanceOf(owner.address);
-    const newTotalSupply = await bscToken.totalSupply();
+    const newBalanceOfSender = await token.balanceOf(owner.address);
+    const newTotalSupply = await token.totalSupply();
     expect(balanceOfSender.sub(newBalanceOfSender)).to.eq(amount);
     expect(totalSupply.sub(newTotalSupply)).to.eq(amount);
   });
@@ -123,15 +123,15 @@ describe("BridgeBSC", function () {
 
     const backendSign = await signMessage(backendSigner, backendMsg);
 
-    const balanceOfRecepient = await bscToken.balanceOf(addr2.address);
-    const totalSupply = await bscToken.totalSupply();
+    const balanceOfRecepient = await token.balanceOf(addr2.address);
+    const totalSupply = await token.totalSupply();
 
     await expect(bridgeContract.redeem(owner.address, addr2.address, amount, bigInt("1"), signature, backendSign))
       .to.emit(bridgeContract, "Redeemed")
       .withArgs(owner.address, addr2.address, amount);
 
-    const newBalanceOfRecepient = await bscToken.balanceOf(addr2.address);
-    const newTotalSupply = await bscToken.totalSupply();
+    const newBalanceOfRecepient = await token.balanceOf(addr2.address);
+    const newTotalSupply = await token.totalSupply();
     expect(newBalanceOfRecepient.sub(balanceOfRecepient)).to.eq(amount);
     expect(newTotalSupply.sub(totalSupply)).to.eq(amount);
   });
