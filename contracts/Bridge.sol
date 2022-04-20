@@ -7,8 +7,6 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 contract Bridge {
 
-    using ECDSA for *;
-
     TokenERC20 public token;
     address backendSigner;
     uint256 nonce;
